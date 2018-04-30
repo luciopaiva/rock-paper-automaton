@@ -61,13 +61,6 @@ class Canvas {
             buffer[this.coordToIndex(x, y) + rgOrB] = 255;
         }
 
-        // for (let y = 1; y < this.height - 1; y++) {
-        //     for (let x = 1; x < this.width - 1; x++) {
-        //         const rgOrB = Math.trunc(Math.random() * 3);
-        //         buffer[4 * (y * this.width + x) + rgOrB] = 255;
-        //     }
-        // }
-
         this.context.putImageData(imageData, 0, 0);
     }
 
@@ -122,20 +115,25 @@ class RockPaperAutomata {
             for (const y of range(1, this.height - 1)) {
                 for (const x of range(1, this.width - 1)) {
                     const [r, g, b] = this.getRGB(originalBuffer, x, y);
-                    if (r + g + b === 0) {  // blank pixel, let's work on it
-                        const dx = Math.trunc(Math.random() * 3) - 1;
-                        const dy = Math.trunc(Math.random() * 3) - 1;
-                        // may pick the pixel itself, no big deal
 
-                        const [or, og, ob] = this.getRGB(originalBuffer, x + dx, y + dy);
+                    // pick a random neighbor - may pick the pixel itself, no big deal
+                    const dx = Math.trunc(Math.random() * 3) - 1;
+                    const dy = Math.trunc(Math.random() * 3) - 1;
+                    const [or, og, ob] = this.getRGB(originalBuffer, x + dx, y + dy);
+
+                    // rock-paper-scissors algorithm
+                    if (r + g + b === 0) {  // blank pixel
                         this.setRGB(workingBuffer, x, y, or, og, ob);
+                    } else if (r > 0 && og > 0) {  // green eats red
+                        this.setRGB(workingBuffer, x, y, 0, og, 0);
+                    } else if (g > 0 && ob > 0) {  // blue eats green
+                        this.setRGB(workingBuffer, x, y, 0, 0, ob);
+                    } else if (b > 0 && or > 0) {  // red eats blue
+                        this.setRGB(workingBuffer, x, y, or, 0, 0);
                     }
                 }
             }
         });
-
-        // ToDo update cells
-        // ToDo swap buffers
 
         window.requestAnimationFrame(this.update.bind(this));
     }
@@ -144,8 +142,11 @@ class RockPaperAutomata {
         const width = RockPaperAutomata.getCssVariableNumber("--canvas-width");
         const height = RockPaperAutomata.getCssVariableNumber("--canvas-height");
 
+        this.automataCountElement = document.getElementById("automata-count");
+        this.automataCountElement.innerText = (width * height).toString();
+
         this.uiCanvas = new Canvas(/** @type {HTMLCanvasElement} */ document.getElementById("canvas"), width, height);
-        this.uiCanvas.paintRandomPoints(1000);
+        this.uiCanvas.paintRandomPoints(100);
 
         window.requestAnimationFrame(this.update.bind(this));
     }

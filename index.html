@@ -6,14 +6,22 @@
 
     <style>
         :root {
-            --canvas-width: 800px;
-            --canvas-height: 600px;
+            font-family: sans-serif;
+            font-size: 10px;
+            background-color: black;
+            color: #dcdcdc;
+            --canvas-width: 400px;
+            --canvas-height: 300px;
         }
     </style>
 </head>
 <body>
 
+<h2>Rock-paper-scissors cellular automata</h2>
+<p>Red eats blue, blue eats green, green eats red. Black is assimilated randomly by one of its neighbors.</p>
 <canvas id="canvas"></canvas>
+<p>Simulating <span id="automata-count"></span> automata.</p>
+
 <script src="index.js"></script>
 
 </body>
