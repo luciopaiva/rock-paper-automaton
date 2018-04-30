@@ -10,6 +10,7 @@ class Canvas {
         this.canvas = canvas;
         this.width = width;
         this.height = height;
+        this.levelByAutomatonIndex = Array(this.width * this.height).fill(0);
         this.canvas.setAttribute("width", width.toString());
         this.canvas.setAttribute("height", height.toString());
         this.context = canvas.getContext("2d");
@@ -38,8 +39,20 @@ class Canvas {
         this.context.putImageData(imageData, 0, 0);
     }
 
-    coordToIndex(x, y) {
+    canvasCoordToDataIndex(x, y) {
         return 4 * (y * this.width + x);
+    }
+
+    canvasCoordToLevelIndex(x, y) {
+        return y * this.width + x;
+    }
+
+    setLevelAtCoord(x, y, level) {
+        this.levelByAutomatonIndex[this.canvasCoordToLevelIndex(x, y)] = level;
+    }
+
+    getLevelAtCoord(x, y) {
+        return this.levelByAutomatonIndex[this.canvasCoordToLevelIndex(x, y)];
     }
 
     isPixelBlank(buffer, x, y) {
@@ -58,7 +71,8 @@ class Canvas {
                 continue; // we don't want to color it again; also, don't bother decrementing i
             }
             const rgOrB = Math.trunc(Math.random() * 3);
-            buffer[this.coordToIndex(x, y) + rgOrB] = 255;
+            buffer[this.canvasCoordToDataIndex(x, y) + rgOrB] = 255;
+            this.setLevelAtCoord(x, y, RockPaperAutomata.INITIAL_LEVEL);
         }
 
         this.context.putImageData(imageData, 0, 0);
@@ -84,16 +98,16 @@ class Canvas {
     }
 
     getRGB(buffer, x, y) {
-        const r = buffer[this.coordToIndex(x, y) + 0];
-        const g = buffer[this.coordToIndex(x, y) + 1];
-        const b = buffer[this.coordToIndex(x, y) + 2];
+        const r = buffer[this.canvasCoordToDataIndex(x, y) + 0];
+        const g = buffer[this.canvasCoordToDataIndex(x, y) + 1];
+        const b = buffer[this.canvasCoordToDataIndex(x, y) + 2];
         return [r, g, b];
     }
 
     setRGB(buffer, x, y, r, g, b) {
-        buffer[this.coordToIndex(x, y) + 0] = r;
-        buffer[this.coordToIndex(x, y) + 1] = g;
-        buffer[this.coordToIndex(x, y) + 2] = b;
+        buffer[this.canvasCoordToDataIndex(x, y) + 0] = r;
+        buffer[this.canvasCoordToDataIndex(x, y) + 1] = g;
+        buffer[this.canvasCoordToDataIndex(x, y) + 2] = b;
     }
 }
 
@@ -119,6 +133,12 @@ class RockPaperAutomata {
                     // pick a random neighbor - may pick the pixel itself, no big deal
                     const dx = Math.trunc(Math.random() * 3) - 1;
                     const dy = Math.trunc(Math.random() * 3) - 1;
+
+                    const neighborLevel = this.getLevelAtCoord(x + dx, y + dy);
+                    if (neighborLevel === 0) {
+                        continue;  // ha, neighbor cannot eat me!
+                    }
+
                     const [or, og, ob] = this.getRGB(originalBuffer, x + dx, y + dy);
 
                     // rock-paper-scissors algorithm
@@ -126,11 +146,16 @@ class RockPaperAutomata {
                         this.setRGB(workingBuffer, x, y, or, og, ob);
                     } else if (r > 0 && og > 0) {  // green eats red
                         this.setRGB(workingBuffer, x, y, 0, og, 0);
+                        this.setLevelAtCoord(x + dx, y + dy, RockPaperAutomata.INITIAL_LEVEL);
                     } else if (g > 0 && ob > 0) {  // blue eats green
                         this.setRGB(workingBuffer, x, y, 0, 0, ob);
+                        this.setLevelAtCoord(x + dx, y + dy, RockPaperAutomata.INITIAL_LEVEL);
                     } else if (b > 0 && or > 0) {  // red eats blue
                         this.setRGB(workingBuffer, x, y, or, 0, 0);
+                        this.setLevelAtCoord(x + dx, y + dy, RockPaperAutomata.INITIAL_LEVEL);
                     }
+
+                    this.setLevelAtCoord(x, y, neighborLevel - 1);
                 }
             }
         });
@@ -150,6 +175,8 @@ class RockPaperAutomata {
 
         window.requestAnimationFrame(this.update.bind(this));
     }
+
+    static get INITIAL_LEVEL() { return 50; }
 }
 
 window.addEventListener("load", () => new RockPaperAutomata());
