@@ -298,7 +298,7 @@ class RockPaperAutomata {
                         // self.neighborPicksIndex = (self.neighborPicksIndex + 1) & self.neighborMask;
 
                         if (self.algorithm === "waves") {
-                            RockPaperAutomata.wavesAlgorithm(x, y, x + dx, y + dy, this, originalBuffer, workingBuffer);
+                            self.wavesAlgorithm(x, y, x + dx, y + dy, this, originalBuffer, workingBuffer);
                         } else {
                             RockPaperAutomata.randomAlgorithm(x, y, x + dx, y + dy, this, originalBuffer, workingBuffer);
                         }
@@ -336,7 +336,7 @@ class RockPaperAutomata {
         }
     }
 
-    static wavesAlgorithm(x, y, nx, ny, canvas, originalBuffer, workingBuffer) {
+    wavesAlgorithm(x, y, nx, ny, canvas, originalBuffer, workingBuffer) {
         const neighborLevel = canvas.getLevelAtCoord(nx, ny);
         if (neighborLevel === 0) {
             return;  // ha, neighbor cannot eat me!
@@ -354,15 +354,15 @@ class RockPaperAutomata {
         if (r + g + b === 0) {  // blank pixel
             canvas.setRGB(workingBuffer, x, y, nr, ng, nb);
             canvas.setLevelAtCoord(x, y, neighborLevel);
-        } else if (r > 0 && ng > 0 && neighborLevel > myLevel) {  // green eats red
+        } else if (r > 0 && ng > 0 && (!this.youngBanquetMode || neighborLevel > myLevel)) {  // green eats red
             canvas.setRGB(workingBuffer, x, y, 0, ng, 0);
             canvas.setLevelAtCoord(nx, ny, RockPaperAutomata.INITIAL_LEVEL);
             canvas.setLevelAtCoord(x, y, RockPaperAutomata.INITIAL_LEVEL);
-        } else if (g > 0 && nb > 0 && neighborLevel > myLevel) {  // blue eats green
+        } else if (g > 0 && nb > 0 && (!this.youngBanquetMode || neighborLevel > myLevel)) {  // blue eats green
             canvas.setRGB(workingBuffer, x, y, 0, 0, nb);
             canvas.setLevelAtCoord(nx, ny, RockPaperAutomata.INITIAL_LEVEL);
             canvas.setLevelAtCoord(x, y, RockPaperAutomata.INITIAL_LEVEL);
-        } else if (b > 0 && nr > 0 && neighborLevel > myLevel) {  // red eats blue
+        } else if (b > 0 && nr > 0 && (!this.youngBanquetMode || neighborLevel > myLevel)) {  // red eats blue
             canvas.setRGB(workingBuffer, x, y, nr, 0, 0);
             canvas.setLevelAtCoord(nx, ny, RockPaperAutomata.INITIAL_LEVEL);
             canvas.setLevelAtCoord(x, y, RockPaperAutomata.INITIAL_LEVEL);
@@ -391,6 +391,8 @@ class RockPaperAutomata {
             }
         });
         this.algorithm = "waves";
+        /** If true, a cell must be younger than its prey to be able to eat it */
+        this.youngBanquetMode = true;
 
         const updateDurationElement = document.getElementById("update-duration");
         this.timing = new Timing();
