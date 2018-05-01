@@ -7,7 +7,7 @@
     <style>
         :root {
             --canvas-width: 800px;
-            --canvas-height: 400px;
+            --canvas-height: 600px;
         }
         body {
             font-family: sans-serif;
@@ -23,6 +23,25 @@
             width: var(--canvas-width);
             text-align: justify;
         }
+        .container {
+            display: flex;
+        }
+        .controls {
+            margin-left: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+        hr {
+            width: 100%;
+            border: none;
+            border-top: 1px solid gray;
+            margin-top: 10px;
+            margin-bottom: 10px;
+        }
+        input {
+            margin-bottom: 5px;
+            margin-top: 5px;
+        }
     </style>
 </head>
 <body>
@@ -35,8 +54,24 @@
         one point. For one cell to eat another, it needs to have a higher level than its prey. Whenever a cell is eaten,
         its points are restored to the original value. Finally, young cells are not edible, meaning their predators will
         have to wait for it to age.</p>
+    <p>The "edible level" is important to thicken the waves, making them prettier.</p>
 </div>
-<canvas id="canvas"></canvas>
+<div class="container">
+    <canvas id="canvas"></canvas>
+    <div class="controls">
+        <span>Reset back to:</span>
+        <input id="initial-state-arcs" type="button" value="Circle arcs" />
+        <input id="initial-state-points" type="button" value="Random points" />
+        <hr />
+        <span>Algorithm:</span>
+        <input id="algorithm-random" type="button" value="Random" />
+        <input id="algorithm-waves" type="button" value="Waves" />
+        <label for="initial-level">Initial level:</label>
+        <input id="initial-level" type="range" min="0" max="50" value="50">
+        <label for="edible-level">Edible level:</label>
+        <input id="edible-level" type="range" min="0" max="50" value="2">
+    </div>
+</div>
 <p>Simulating <span id="automata-count"></span> automata.</p>
 <p>Update duration: <span id="update-duration"></span> ms</p>
 

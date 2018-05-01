@@ -51,7 +51,6 @@ class Canvas {
         this.canvas.setAttribute("width", width.toString());
         this.canvas.setAttribute("height", height.toString());
         this.context = canvas.getContext("2d");
-        this.context.imageSmoothingEnabled = false;
 
         this.reset();
     }
