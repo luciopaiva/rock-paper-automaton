@@ -6,21 +6,39 @@
 
     <style>
         :root {
+            --canvas-width: 800px;
+            --canvas-height: 400px;
+        }
+        body {
             font-family: sans-serif;
-            font-size: 10px;
-            background-color: black;
+            font-size: 14px;
+            background-color: #222222;
             color: #dcdcdc;
-            --canvas-width: 400px;
-            --canvas-height: 300px;
+        }
+        a, a:visited, a:hover, a:active {
+            text-decoration: none;
+            color: #00d4ff;
+        }
+        .text {
+            width: var(--canvas-width);
+            text-align: justify;
         }
     </style>
 </head>
 <body>
 
-<h2>Rock-paper-scissors cellular automata</h2>
-<p>Red eats blue, blue eats green, green eats red. Black is assimilated randomly by one of its neighbors.</p>
+<h1>Rock-paper-scissors cellular automata</h1>
+<div class="text">
+    <p>Experiment inspired by <a href="https://youtu.be/M4cV0nCIZoc">this video</a>.</p>
+    <p>Each pixel corresponds to a cell. Red eats blue, blue eats green, green eats red. Black is assimilated randomly
+        by one of its neighbors. Each cell begins with a certain number of points. At each iteration, it ages, losing
+        one point. For one cell to eat another, it needs to have a higher level than its prey. Whenever a cell is eaten,
+        its points are restored to the original value. Finally, young cells are not edible, meaning their predators will
+        have to wait for it to age.</p>
+</div>
 <canvas id="canvas"></canvas>
 <p>Simulating <span id="automata-count"></span> automata.</p>
+<p>Update duration: <span id="update-duration"></span> ms</p>
 
 <script src="index.js"></script>
 
