@@ -99,7 +99,7 @@ class Canvas {
         return (r + g + b) === 0;
     }
 
-    paintArcs() {
+    paintSectors() {
         const x = this.width / 2;
         const y = this.height / 2;
         const radius = this.width;
@@ -124,54 +124,6 @@ class Canvas {
         this.context.lineTo(x, y);
         this.context.fillStyle = "red";
         this.context.fill();
-
-        this.clearMargins();
-        this.resetLevelsAndSaturateChannels();
-    }
-
-    paintCircles() {
-        const x = this.width / 2;
-        const y = this.height / 2;
-        const strokeWidth = 1;
-        let radiusSize = this.width / 3;
-
-        this.context.beginPath();
-        this.context.arc(x, y, radiusSize, 0, 2 * Math.PI);
-        this.context.strokeStyle = "green";
-        this.context.lineWidth = strokeWidth;
-        this.context.stroke();
-
-        radiusSize /= 2;
-        this.context.beginPath();
-        this.context.arc(x, y, radiusSize, 0, 2 * Math.PI);
-        this.context.strokeStyle = "blue";
-        this.context.lineWidth = strokeWidth;
-        this.context.stroke();
-
-        radiusSize /= 2;
-        this.context.beginPath();
-        this.context.arc(x, y, radiusSize, 0, 2 * Math.PI);
-        this.context.strokeStyle = "red";
-        this.context.lineWidth = strokeWidth;
-        this.context.stroke();
-
-        this.context.strokeStyle = "green";
-        this.context.beginPath();
-        this.context.moveTo(0, this.height / 2);
-        this.context.lineTo(this.width, this.height / 2);
-        this.context.stroke();
-
-        this.context.strokeStyle = "red";
-        this.context.beginPath();
-        this.context.moveTo(0, 0);
-        this.context.lineTo(this.width, this.height);
-        this.context.stroke();
-
-        this.context.strokeStyle = "blue";
-        this.context.beginPath();
-        this.context.moveTo(this.width, 0);
-        this.context.lineTo(0, this.height);
-        this.context.stroke();
 
         this.clearMargins();
         this.resetLevelsAndSaturateChannels();
@@ -285,6 +237,11 @@ class RockPaperAutomata {
 
     update() {
         window.requestAnimationFrame(this.update.bind(this));
+
+        if (this.isPaused) {
+            return;
+        }
+
         const self = this;
 
         this.timing.measure("do-work", () => {
@@ -383,13 +340,23 @@ class RockPaperAutomata {
             canvas.setRGB(workingBuffer, x, y, nr, 0, 0);
             canvas.setLevelAtCoord(nx, ny, this.initialLevel);
             canvas.setLevelAtCoord(x, y, this.initialLevel);
-        // } else if ((r > 0 && nr > 0) || (g > 0 && ng > 0) || (b > 0 && nb > 0)) {
-        //     // reinforced by a neighbor of the same color
-        //     canvas.setLevelAtCoord(x, y, myLevel + 1);
-        //     canvas.setLevelAtCoord(nx, ny, neighborLevel - 1);  // neighbor loses strength
         } else {
             // aging
             canvas.setLevelAtCoord(x, y, myLevel - 1);
+        }
+    }
+
+    loadInitialCanvas(setup) {
+        this.uiCanvas =
+            new Canvas(this, /** @type {HTMLCanvasElement} */ document.getElementById("canvas"), this.canvasWidth,
+                this.canvasHeight);
+        switch (setup) {
+            case "sectors":
+                this.uiCanvas.paintSectors();
+                break;
+            case "points":
+                this.uiCanvas.paintRandomPoints(100);
+                break;
         }
     }
 
@@ -397,6 +364,8 @@ class RockPaperAutomata {
         const self = this;
         const width = RockPaperAutomata.getCssVariableNumber("--canvas-width");
         const height = RockPaperAutomata.getCssVariableNumber("--canvas-height");
+        this.canvasWidth = width;
+        this.canvasHeight = height;
 
         // metrics
         this.automataCountElement = document.getElementById("automata-count");
@@ -451,11 +420,18 @@ class RockPaperAutomata {
         /** If true, a cell must be younger than its prey to be able to eat it */
         this.youngBanquetMode = true;
 
-        this.uiCanvas =
-            new Canvas(this, /** @type {HTMLCanvasElement} */ document.getElementById("canvas"), width, height);
-        // this.uiCanvas.paintCircles();
-        // this.uiCanvas.paintRandomPoints(100);
-        this.uiCanvas.paintArcs();
+        this.uiCanvas = null;
+        document.getElementById("initial-state-sectors")
+            .addEventListener("click", () => this.loadInitialCanvas("sectors"));
+        document.getElementById("initial-state-points")
+            .addEventListener("click", () => this.loadInitialCanvas("points"));
+        this.loadInitialCanvas("sectors");
+
+        this.isPaused = false;
+        document.getElementById("playback").addEventListener("click", function () {
+            self.isPaused = !self.isPaused;
+            this.value = self.isPaused ? "Play" : "Pause";
+        });
 
         window.requestAnimationFrame(this.update.bind(this));
     }

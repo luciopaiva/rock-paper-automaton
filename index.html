@@ -62,9 +62,11 @@
 <div class="container">
     <canvas id="canvas"></canvas>
     <div class="controls">
+        <input id="playback" type="button" value="Pause" />
+        <hr />
         <span>Reset back to:</span>
-        <input id="initial-state-arcs" type="button" value="Circle arcs" disabled />
-        <input id="initial-state-points" type="button" value="Random points" disabled />
+        <input id="initial-state-sectors" type="button" value="Circle sectors" />
+        <input id="initial-state-points" type="button" value="Random points" />
         <hr />
         <span>Algorithm:</span>
         <input id="algorithm-random" type="button" value="Random" />
@@ -86,8 +88,8 @@
         </div>
     </div>
 </div>
-<p>Simulating <span id="automata-count"></span> automata.</p>
-<p>Update duration: <span id="update-duration"></span> ms</p>
+<p>Simulating <span id="automata-count">?</span> automata.</p>
+<p>Update duration: <span id="update-duration">?</span> ms</p>
 
 <script src="index.js"></script>
 
