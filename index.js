@@ -422,11 +422,9 @@ class RockPaperAutomata {
         this.edibleLevel = RockPaperAutomata.EDIBLE_LEVEL;
         document.getElementById("initial-level").addEventListener("change", function () {
             self.initialLevel = parseInt(this.value, 10);
-            console.info("Initial level is now " + self.initialLevel);
         });
         document.getElementById("edible-level").addEventListener("change", function () {
             self.edibleLevel = parseInt(this.value, 10);
-            console.info("Edible level is now " + self.edibleLevel);
         });
 
         // neighbor picking mode selection
