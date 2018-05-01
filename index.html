@@ -42,6 +42,9 @@
             margin-bottom: 5px;
             margin-top: 5px;
         }
+        .radio-group {
+            display: block;
+        }
     </style>
 </head>
 <body>
@@ -60,16 +63,27 @@
     <canvas id="canvas"></canvas>
     <div class="controls">
         <span>Reset back to:</span>
-        <input id="initial-state-arcs" type="button" value="Circle arcs" />
-        <input id="initial-state-points" type="button" value="Random points" />
+        <input id="initial-state-arcs" type="button" value="Circle arcs" disabled />
+        <input id="initial-state-points" type="button" value="Random points" disabled />
         <hr />
         <span>Algorithm:</span>
         <input id="algorithm-random" type="button" value="Random" />
         <input id="algorithm-waves" type="button" value="Waves" />
+        <hr />
         <label for="initial-level">Initial level:</label>
         <input id="initial-level" type="range" min="0" max="50" value="50">
         <label for="edible-level">Edible level:</label>
         <input id="edible-level" type="range" min="0" max="50" value="2">
+        <hr />
+        <span>Neighbor selection:</span>
+        <div class="radio-group">
+            <input type="radio" id="neighbor-selection-random" name="neighbor-selection" value="random" checked>
+            <label for="neighbor-selection-random">Random</label><br>
+            <input type="radio" id="neighbor-selection-fixed" name="neighbor-selection" value="fixed">
+            <label for="neighbor-selection-fixed">Fixed</label><br>
+            <input type="radio" id="neighbor-selection-pre-random" name="neighbor-selection" value="pre-random">
+            <label for="neighbor-selection-pre-random">Pre-random</label>
+        </div>
     </div>
 </div>
 <p>Simulating <span id="automata-count"></span> automata.</p>

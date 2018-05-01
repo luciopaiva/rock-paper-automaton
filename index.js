@@ -39,11 +39,13 @@ class Timing {
 class Canvas {
 
     /**
+     * @param {RockPaperAutomata} simulation
      * @param {HTMLCanvasElement} canvas
      * @param {Number} width
      * @param {Number} height
      */
-    constructor (canvas, width, height) {
+    constructor (simulation, canvas, width, height) {
+        this.simulation = simulation;
         this.canvas = canvas;
         this.width = width;
         this.height = height;
@@ -197,7 +199,7 @@ class Canvas {
         for (let y = 0; y < this.height; y++) {
             for (let x = 0; x < this.width; x++) {
                 if (!this.isPixelBlank(buffer, x, y)) {
-                    this.setLevelAtCoord(x, y, RockPaperAutomata.INITIAL_LEVEL);
+                    this.setLevelAtCoord(x, y, this.simulation.initialLevel);
                     const [r, g, b] = this.getRGB(buffer, x, y);
                     if (r > 0) {
                         buffer[this.canvasCoordToDataIndex(x, y) + 0] = 255;
@@ -230,7 +232,7 @@ class Canvas {
             }
             const rgOrB = Math.trunc(Math.random() * 3);
             buffer[this.canvasCoordToDataIndex(x, y) + rgOrB] = 255;
-            this.setLevelAtCoord(x, y, RockPaperAutomata.INITIAL_LEVEL);
+            this.setLevelAtCoord(x, y, this.simulation.initialLevel);
         }
 
         this.context.putImageData(imageData, 0, 0);
@@ -291,16 +293,31 @@ class RockPaperAutomata {
                 for (const y of range(1, this.height - 1)) {
                     for (const x of range(1, this.width - 1)) {
 
-                        // pick a random neighbor - may pick the pixel itself, no big deal
-                        const dx = Math.trunc(Math.random() * 3) - 1;
-                        const dy = Math.trunc(Math.random() * 3) - 1;
-                        // const [dx, dy] = self.neighborPicks[self.neighborPicksIndex];
-                        // self.neighborPicksIndex = (self.neighborPicksIndex + 1) & self.neighborMask;
+                        let dx, dy;
+                        switch (self.neighborPickingMode) {
+                            case RockPaperAutomata.NEIGHBOR_PICKING_MODE_RANDOM:
+                                // pick a random neighbor - may pick the pixel itself, no big deal
+                                dx = Math.trunc(Math.random() * 3) - 1;
+                                dy = Math.trunc(Math.random() * 3) - 1;
+                                break;
+                            case RockPaperAutomata.NEIGHBOR_PICKING_MODE_FIXED:
+                                [dx, dy] = self.fixedNeighborPicks[self.fixedNeighborPicksIndex];
+                                self.fixedNeighborPicksIndex =
+                                    (self.fixedNeighborPicksIndex + 1) & self.fixedNeighborMask;
+                                break;
+                            case RockPaperAutomata.NEIGHBOR_PICKING_MODE_PRE_RANDOM:
+                                [dx, dy] = self.randomNeighborPicks[self.randomNeighborPicksIndex];
+                                self.randomNeighborPicksIndex =
+                                    (self.randomNeighborPicksIndex + 1) & self.randomNeighborMask;
+                                break;
+                            default:
+                                throw new Error("Unknown neighbor picking mode!");
+                        }
 
                         if (self.algorithm === "waves") {
                             self.wavesAlgorithm(x, y, x + dx, y + dy, this, originalBuffer, workingBuffer);
                         } else {
-                            RockPaperAutomata.randomAlgorithm(x, y, x + dx, y + dy, this, originalBuffer, workingBuffer);
+                            self.randomAlgorithm(x, y, x + dx, y + dy, this, originalBuffer, workingBuffer);
                         }
                     }
                 }
@@ -308,7 +325,7 @@ class RockPaperAutomata {
         });
     }
 
-    static randomAlgorithm(x, y, nx, ny, canvas, originalBuffer, workingBuffer) {
+    randomAlgorithm(x, y, nx, ny, canvas, originalBuffer, workingBuffer) {
         const neighborLevel = canvas.getLevelAtCoord(nx, ny);
         if (neighborLevel === 0) {
             return;  // ha, neighbor cannot eat me!
@@ -324,15 +341,15 @@ class RockPaperAutomata {
         } else if (r > 0 && ng > 0) {  // green eats red
             canvas.setRGB(workingBuffer, x, y, 0, ng, 0);
             canvas.setLevelAtCoord(nx, ny, neighborLevel + 1);
-            canvas.setLevelAtCoord(x, y, RockPaperAutomata.INITIAL_LEVEL);
+            canvas.setLevelAtCoord(x, y, this.initialLevel);
         } else if (g > 0 && nb > 0) {  // blue eats green
             canvas.setRGB(workingBuffer, x, y, 0, 0, nb);
             canvas.setLevelAtCoord(nx, ny, neighborLevel + 1);
-            canvas.setLevelAtCoord(x, y, RockPaperAutomata.INITIAL_LEVEL);
+            canvas.setLevelAtCoord(x, y, this.initialLevel);
         } else if (b > 0 && nr > 0) {  // red eats blue
             canvas.setRGB(workingBuffer, x, y, nr, 0, 0);
             canvas.setLevelAtCoord(nx, ny, neighborLevel + 1);
-            canvas.setLevelAtCoord(x, y, RockPaperAutomata.INITIAL_LEVEL);
+            canvas.setLevelAtCoord(x, y, this.initialLevel);
         }
     }
 
@@ -343,7 +360,7 @@ class RockPaperAutomata {
         }
 
         const myLevel = canvas.getLevelAtCoord(x, y);
-        if (myLevel > RockPaperAutomata.EDIBLE_LEVEL) {
+        if (myLevel > this.edibleLevel) {
             canvas.setLevelAtCoord(x, y, myLevel - 1);
             return;  // too young to be eaten
         }
@@ -356,16 +373,16 @@ class RockPaperAutomata {
             canvas.setLevelAtCoord(x, y, neighborLevel);
         } else if (r > 0 && ng > 0 && (!this.youngBanquetMode || neighborLevel > myLevel)) {  // green eats red
             canvas.setRGB(workingBuffer, x, y, 0, ng, 0);
-            canvas.setLevelAtCoord(nx, ny, RockPaperAutomata.INITIAL_LEVEL);
-            canvas.setLevelAtCoord(x, y, RockPaperAutomata.INITIAL_LEVEL);
+            canvas.setLevelAtCoord(nx, ny, this.initialLevel);
+            canvas.setLevelAtCoord(x, y, this.initialLevel);
         } else if (g > 0 && nb > 0 && (!this.youngBanquetMode || neighborLevel > myLevel)) {  // blue eats green
             canvas.setRGB(workingBuffer, x, y, 0, 0, nb);
-            canvas.setLevelAtCoord(nx, ny, RockPaperAutomata.INITIAL_LEVEL);
-            canvas.setLevelAtCoord(x, y, RockPaperAutomata.INITIAL_LEVEL);
+            canvas.setLevelAtCoord(nx, ny, this.initialLevel);
+            canvas.setLevelAtCoord(x, y, this.initialLevel);
         } else if (b > 0 && nr > 0 && (!this.youngBanquetMode || neighborLevel > myLevel)) {  // red eats blue
             canvas.setRGB(workingBuffer, x, y, nr, 0, 0);
-            canvas.setLevelAtCoord(nx, ny, RockPaperAutomata.INITIAL_LEVEL);
-            canvas.setLevelAtCoord(x, y, RockPaperAutomata.INITIAL_LEVEL);
+            canvas.setLevelAtCoord(nx, ny, this.initialLevel);
+            canvas.setLevelAtCoord(x, y, this.initialLevel);
         // } else if ((r > 0 && nr > 0) || (g > 0 && ng > 0) || (b > 0 && nb > 0)) {
         //     // reinforced by a neighbor of the same color
         //     canvas.setLevelAtCoord(x, y, myLevel + 1);
@@ -377,12 +394,21 @@ class RockPaperAutomata {
     }
 
     constructor () {
+        const self = this;
         const width = RockPaperAutomata.getCssVariableNumber("--canvas-width");
         const height = RockPaperAutomata.getCssVariableNumber("--canvas-height");
 
+        // metrics
         this.automataCountElement = document.getElementById("automata-count");
         this.automataCountElement.innerText = (width * height).toString();
+        const updateDurationElement = document.getElementById("update-duration");
+        this.timing = new Timing();
+        this.timing.on("do-work", (value) => updateDurationElement.innerText = value.toFixed(0));
 
+        // algorithm selection
+        this.algorithm = "waves";
+        document.getElementById("algorithm-random").addEventListener("click", () => this.algorithm = "random");
+        document.getElementById("algorithm-waves").addEventListener("click", () => this.algorithm = "waves");
         document.addEventListener("keypress", (e) => {
             if (e.key === "r") {
                 this.algorithm = "random";
@@ -390,31 +416,57 @@ class RockPaperAutomata {
                 this.algorithm = "waves";
             }
         });
-        this.algorithm = "waves";
+
+        // levels
+        this.initialLevel = RockPaperAutomata.INITIAL_LEVEL;
+        this.edibleLevel = RockPaperAutomata.EDIBLE_LEVEL;
+        document.getElementById("initial-level").addEventListener("change", function () {
+            self.initialLevel = parseInt(this.value, 10);
+            console.info("Initial level is now " + self.initialLevel);
+        });
+        document.getElementById("edible-level").addEventListener("change", function () {
+            self.edibleLevel = parseInt(this.value, 10);
+            console.info("Edible level is now " + self.edibleLevel);
+        });
+
+        // neighbor picking mode selection
+        this.neighborPickingMode = RockPaperAutomata.NEIGHBOR_PICKING_MODE_RANDOM;
+        document.querySelectorAll('[name="neighbor-selection"]')
+            .forEach(elem => elem.addEventListener("change", function () {
+                switch (this.value) {
+                    case "random": return self.neighborPickingMode = RockPaperAutomata.NEIGHBOR_PICKING_MODE_RANDOM;
+                    case "fixed": return self.neighborPickingMode = RockPaperAutomata.NEIGHBOR_PICKING_MODE_FIXED;
+                    case "pre-random": return self.neighborPickingMode = RockPaperAutomata.NEIGHBOR_PICKING_MODE_PRE_RANDOM;
+                }
+            }));
+        // fixed neighbors
+        this.fixedNeighborPicks = [[1, 1], [1, 0], [1, -1], [0, -1], [-1, -1], [-1, 0], [-1, 1], [0, 1]];
+        this.fixedNeighborMask = this.fixedNeighborPicks.length - 1;
+        this.fixedNeighborPicksIndex = 0;
+        // pre-selected random values
+        const randomPicksLength = 128;  // must be power of two!
+        this.randomNeighborPicks = Array.from(Array(randomPicksLength), () => [
+            Math.trunc(Math.random() * 3) - 1, Math.trunc(Math.random() * 3) - 1]);
+        this.randomNeighborMask = this.randomNeighborPicks.length - 1;
+        this.randomNeighborPicksIndex = 0;
+
         /** If true, a cell must be younger than its prey to be able to eat it */
         this.youngBanquetMode = true;
 
-        const updateDurationElement = document.getElementById("update-duration");
-        this.timing = new Timing();
-        this.timing.on("do-work", (value) => updateDurationElement.innerText = value.toFixed(0));
-
-        this.uiCanvas = new Canvas(/** @type {HTMLCanvasElement} */ document.getElementById("canvas"), width, height);
+        this.uiCanvas =
+            new Canvas(this, /** @type {HTMLCanvasElement} */ document.getElementById("canvas"), width, height);
         // this.uiCanvas.paintCircles();
         // this.uiCanvas.paintRandomPoints(100);
         this.uiCanvas.paintArcs();
-
-        // this.neighborPicks = [[1, 1], [1, 0], [1, -1], [0, -1], [-1, -1], [-1, 0], [-1, 1], [0, 1]];
-        this.neighborPicks = Array.from(Array(128), () => [
-            Math.trunc(Math.random() * 3) - 1, Math.trunc(Math.random() * 3) - 1]);
-        this.neighborMask = this.neighborPicks.length - 1;
-        this.neighborPicksIndex = 0;
-
 
         window.requestAnimationFrame(this.update.bind(this));
     }
 
     static get INITIAL_LEVEL() { return 30; }
     static get EDIBLE_LEVEL() { return 1; }
+    static get NEIGHBOR_PICKING_MODE_RANDOM() { return 0; }
+    static get NEIGHBOR_PICKING_MODE_FIXED() { return 1; }
+    static get NEIGHBOR_PICKING_MODE_PRE_RANDOM() { return 2; }
 }
 
 window.addEventListener("load", () => new RockPaperAutomata());
