@@ -45,6 +45,40 @@
         .radio-group {
             display: block;
         }
+        .button-group {
+            display: flex;
+            flex-direction: row;
+            height: 30px;
+        }
+        .button-group button {
+            flex-grow: 1;
+            margin: 1px;
+            border-radius: 4px;
+            border: none;
+            text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.4);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 1px 1px rgba(0, 0, 0, 0.2);
+        }
+        button.red {
+            background-color: #400000;
+        }
+        button.pressed.red, button.red:active {
+            border: 1px solid #ff7983;
+            background-color: #ff0000;
+        }
+        button.green {
+            background-color: #004000;
+        }
+        button.pressed.green, button.green:active {
+            border: 1px solid #36af3c;
+            background-color: #00ff00;
+        }
+        button.blue {
+            background-color: #000047;
+        }
+        button.pressed.blue, button.blue:active {
+            border: 1px solid #3b6979;
+            background-color: #0000ff;
+        }
     </style>
 </head>
 <body>
@@ -62,9 +96,16 @@
 <div class="container">
     <canvas id="canvas"></canvas>
     <div class="controls">
+        <div class="button-group">
+            <button id="button-red" class="red" data-color="red"></button>
+            <button id="button-green" class="green" data-color="green"></button>
+            <button id="button-blue" class="blue" data-color="blue"></button>
+        </div>
+        <hr />
         <input id="playback" type="button" value="Pause" />
         <hr />
         <span>Reset back to:</span>
+        <input id="initial-state-clear" type="button" value="Clear" />
         <input id="initial-state-sectors" type="button" value="Circle sectors" />
         <input id="initial-state-points" type="button" value="Random points" />
         <hr />

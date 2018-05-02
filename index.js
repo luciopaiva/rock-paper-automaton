@@ -54,28 +54,89 @@ class Canvas {
         this.canvas.setAttribute("height", height.toString());
         this.context = canvas.getContext("2d");
 
+        // Auxiliary canvas for free-hand drawing; this is a hack I came up with because there's no way to get rid of
+        // anti-aliasing in HTML canvases and we must have pure colors only. The hack consists of reading from the
+        // drawing canvas and translating it into pure colors in the main canvas, while also resetting cell levels
+        // accordingly.
+        this.drawingCanvas = document.createElement("canvas");
+        this.drawingCanvas.setAttribute("width", width.toString());
+        this.drawingCanvas.setAttribute("height", height.toString());
+        this.drawingContext = this.drawingCanvas.getContext("2d");
+        this.reset(this.drawingContext);
+
+        this.canvas.addEventListener("mousemove", this.onMouseMove.bind(this));
+        this.canvas.addEventListener("mousedown", this.onMouseDown.bind(this));
+        this.canvas.addEventListener("mouseup", this.onMouseUp.bind(this));
+        this.lastMouseX = 0;
+        this.lastMouseY = 0;
+        this.isMouseDown = false;
+
+        this.paintColor = "white";
+
         this.reset();
+    }
+
+    setPaintColor(color) {
+        // black will be translated into white when drawing, because later we'll need to distinguish what has been drawn
+        this.paintColor = color === "black" ? "white" : color;
+    }
+
+    onMouseMove(event) {
+        if (this.isMouseDown) {
+            const curX = event.clientX - this.canvas.offsetLeft;
+            const curY = event.clientY - this.canvas.offsetTop;
+
+            const lineWidth = 20;
+            this.drawingContext.beginPath();
+            this.drawingContext.moveTo(this.lastMouseX, this.lastMouseY);
+            this.drawingContext.lineTo(curX, curY);
+            this.drawingContext.strokeStyle = this.paintColor;
+            this.drawingContext.fillStyle = this.paintColor;
+            this.drawingContext.lineCap = "round";
+            this.drawingContext.lineWidth = lineWidth;
+            this.drawingContext.stroke();
+            this.drawingContext.closePath();
+
+            const x0 = Math.max(1, Math.min(this.lastMouseX, curX) - lineWidth);
+            const y0 = Math.max(1, Math.min(this.lastMouseY, curY) - lineWidth);
+            const x1 = Math.min(this.width - 1, Math.max(this.lastMouseX, curX) + lineWidth);
+            const y1 = Math.min(this.height - 1, Math.max(this.lastMouseY, curY) + lineWidth);
+            this.transposeDrawingAndReset(x0, y0, x1, y1);
+
+            this.lastMouseX = curX;
+            this.lastMouseY = curY;
+        }
+    }
+
+    onMouseDown(event) {
+        this.isMouseDown = true;
+        this.lastMouseX = event.clientX - this.canvas.offsetLeft;
+        this.lastMouseY = event.clientY - this.canvas.offsetTop;
+    }
+
+    onMouseUp(event) {
+        this.isMouseDown = false;
     }
 
     /**
      * @return {ImageData}
      */
-    getUnderlyingBufferCopy() {
-        return this.context.getImageData(0, 0, this.width, this.height);
+    getUnderlyingBufferCopy(context = this.context) {
+        return context.getImageData(0, 0, this.width, this.height);
     }
 
     /**
      * Paint the whole canvas black and set opacity to maximum.
      */
-    reset() {
-        const imageData = this.getUnderlyingBufferCopy();
+    reset(customContext = this.context) {
+        const imageData = this.getUnderlyingBufferCopy(customContext);
         const buffer = imageData.data;
         buffer.fill(0);
         // raise opacity levels
         for (let i = 3; i < buffer.length; i += 4) {
             buffer[i] = 255;
         }
-        this.context.putImageData(imageData, 0, 0);
+        customContext.putImageData(imageData, 0, 0);
     }
 
     canvasCoordToDataIndex(x, y) {
@@ -144,29 +205,74 @@ class Canvas {
         this.context.putImageData(imageData, 0, 0);
     }
 
-    resetLevelsAndSaturateChannels() {
+    transposeDrawingAndReset(x0, y0, x1, y1) {
+        const inputImageData = this.getUnderlyingBufferCopy(this.drawingContext);
+        const inputBuffer = inputImageData.data;
+        const outputImageData = this.getUnderlyingBufferCopy();
+        const outputBuffer = outputImageData.data;
+
+        // ToDo extract method here (same code as resetLevelsAndSaturateChannels())
+        for (const y of range(y0, y1)) {
+            for (const x of range(x0, x1)) {
+                const [r, g, b] = this.getRGB(inputBuffer, x, y);
+                if (r + g + b === 0) {
+                    continue;
+                }
+                if (r > 200 && g > 200 && b > 200) {  // consider this as white
+                    // white input translates into black output
+                    outputBuffer[this.canvasCoordToDataIndex(x, y) + 0] = 0;
+                    outputBuffer[this.canvasCoordToDataIndex(x, y) + 1] = 0;
+                    outputBuffer[this.canvasCoordToDataIndex(x, y) + 2] = 0;
+                } else if (r > 0 && r > g && r > b) {  // red is the predominant color
+                    outputBuffer[this.canvasCoordToDataIndex(x, y) + 0] = 255;
+                    outputBuffer[this.canvasCoordToDataIndex(x, y) + 1] = 0;
+                    outputBuffer[this.canvasCoordToDataIndex(x, y) + 2] = 0;
+                } else if (g > 0 && g > r && g > b) {  // green is the predominant color
+                    outputBuffer[this.canvasCoordToDataIndex(x, y) + 0] = 0;
+                    outputBuffer[this.canvasCoordToDataIndex(x, y) + 1] = 255;
+                    outputBuffer[this.canvasCoordToDataIndex(x, y) + 2] = 0;
+                } else if (b > 0 && b > r && b > g) {  // blue is the predominant color
+                    outputBuffer[this.canvasCoordToDataIndex(x, y) + 0] = 0;
+                    outputBuffer[this.canvasCoordToDataIndex(x, y) + 1] = 0;
+                    outputBuffer[this.canvasCoordToDataIndex(x, y) + 2] = 255;
+                }
+                this.setLevelAtCoord(x, y, this.simulation.initialLevel);
+            }
+        }
+
+        // reset drawing canvas
+        inputBuffer.fill(0);
+        this.drawingContext.putImageData(inputImageData, 0, 0);
+
+        this.context.putImageData(outputImageData, 0, 0);
+    }
+
+    resetLevelsAndSaturateChannels(x0 = 0, y0 = 0, x1 = this.width, y1 = this.height) {
         // now find all colored pixels and raise their levels
         const imageData = this.getUnderlyingBufferCopy();
         const buffer = imageData.data;
-        for (let y = 0; y < this.height; y++) {
-            for (let x = 0; x < this.width; x++) {
-                if (!this.isPixelBlank(buffer, x, y)) {
-                    this.setLevelAtCoord(x, y, this.simulation.initialLevel);
-                    const [r, g, b] = this.getRGB(buffer, x, y);
-                    if (r > 0) {
-                        buffer[this.canvasCoordToDataIndex(x, y) + 0] = 255;
-                        buffer[this.canvasCoordToDataIndex(x, y) + 1] = 0;
-                        buffer[this.canvasCoordToDataIndex(x, y) + 2] = 0;
-                    } else if (g > 0) {
-                        buffer[this.canvasCoordToDataIndex(x, y) + 0] = 0;
-                        buffer[this.canvasCoordToDataIndex(x, y) + 1] = 255;
-                        buffer[this.canvasCoordToDataIndex(x, y) + 2] = 0;
-                    } else if (b > 0) {
-                        buffer[this.canvasCoordToDataIndex(x, y) + 0] = 0;
-                        buffer[this.canvasCoordToDataIndex(x, y) + 1] = 0;
-                        buffer[this.canvasCoordToDataIndex(x, y) + 2] = 255;
-                    }
+
+        // ToDo extract method here (same code as transposeDrawingAndReset())
+        for (let y = y0; y < y1; y++) {
+            for (let x = x0; x < x1; x++) {
+                const [r, g, b] = this.getRGB(buffer, x, y);
+                if (r + g + b === 0) {
+                    continue;
                 }
+                if (r > 0 && r > g && r > b) {  // red is the predominant color
+                    buffer[this.canvasCoordToDataIndex(x, y) + 0] = 255;
+                    buffer[this.canvasCoordToDataIndex(x, y) + 1] = 0;
+                    buffer[this.canvasCoordToDataIndex(x, y) + 2] = 0;
+                } else if (g > 0 && g > r && g > b) {  // green is the predominant color
+                    buffer[this.canvasCoordToDataIndex(x, y) + 0] = 0;
+                    buffer[this.canvasCoordToDataIndex(x, y) + 1] = 255;
+                    buffer[this.canvasCoordToDataIndex(x, y) + 2] = 0;
+                } else if (b > 0 && b > r && b > g) {  // blue is the predominant color
+                    buffer[this.canvasCoordToDataIndex(x, y) + 0] = 0;
+                    buffer[this.canvasCoordToDataIndex(x, y) + 1] = 0;
+                    buffer[this.canvasCoordToDataIndex(x, y) + 2] = 255;
+                }
+                this.setLevelAtCoord(x, y, this.simulation.initialLevel);
             }
         }
         this.context.putImageData(imageData, 0, 0);
@@ -224,7 +330,8 @@ class Canvas {
 }
 
 function *range(begin, end) {
-    for (let i = begin; i < end; i++) {
+    let increment = begin < end ? 1 : -1;
+    for (let i = begin; increment > 0 ? i < end : i > end; i += increment) {
         yield i;
     }
 }
@@ -351,6 +458,9 @@ class RockPaperAutomata {
             new Canvas(this, /** @type {HTMLCanvasElement} */ document.getElementById("canvas"), this.canvasWidth,
                 this.canvasHeight);
         switch (setup) {
+            case "clear":
+                this.uiCanvas.reset();
+                break;
             case "sectors":
                 this.uiCanvas.paintSectors();
                 break;
@@ -378,13 +488,6 @@ class RockPaperAutomata {
         this.algorithm = "waves";
         document.getElementById("algorithm-random").addEventListener("click", () => this.algorithm = "random");
         document.getElementById("algorithm-waves").addEventListener("click", () => this.algorithm = "waves");
-        document.addEventListener("keypress", (e) => {
-            if (e.key === "r") {
-                this.algorithm = "random";
-            } else if (e.key === "w") {
-                this.algorithm = "waves";
-            }
-        });
 
         // levels
         this.initialLevel = RockPaperAutomata.INITIAL_LEVEL;
@@ -421,11 +524,33 @@ class RockPaperAutomata {
         this.youngBanquetMode = true;
 
         this.uiCanvas = null;
+        document.getElementById("initial-state-clear")
+            .addEventListener("click", () => this.loadInitialCanvas("clear"));
         document.getElementById("initial-state-sectors")
             .addEventListener("click", () => this.loadInitialCanvas("sectors"));
         document.getElementById("initial-state-points")
             .addEventListener("click", () => this.loadInitialCanvas("points"));
         this.loadInitialCanvas("sectors");
+
+        function colorButtonClick() {
+            const color = this.dataset.color;
+            if (this.classList.contains("pressed")) {
+                this.classList.remove("pressed");
+                self.uiCanvas.setPaintColor("black");
+            } else {
+                redButton.classList.remove("pressed");
+                greenButton.classList.remove("pressed");
+                blueButton.classList.remove("pressed");
+                this.classList.add("pressed");
+                self.uiCanvas.setPaintColor(color);
+            }
+        }
+        const redButton = document.getElementById("button-red");
+        redButton.addEventListener("click", colorButtonClick);
+        const greenButton = document.getElementById("button-green");
+        greenButton.addEventListener("click", colorButtonClick);
+        const blueButton = document.getElementById("button-blue");
+        blueButton.addEventListener("click", colorButtonClick);
 
         this.isPaused = false;
         document.getElementById("playback").addEventListener("click", function () {
