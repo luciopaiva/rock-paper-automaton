@@ -353,7 +353,7 @@ class RockPaperAutomata {
 
         this.timing.measure("do-work", () => {
             this.uiCanvas.doWork(/** @this {Canvas} */ function (originalBuffer, workingBuffer) {
-                const algorithm = self.algorithm === "waves" ? self.wavesAlgorithm : self.randomAlgorithm;
+                const algorithm = self.algorithm === "waves" ? self.wavesAlgorithm.bind(self) : self.randomAlgorithm.bind(self);
                 const pickNeighbor = self.obtainNeighborPickingFunction();
 
                 // iterate over all pixels except for the ones in the border, just to simplify neighbor comparisons
@@ -368,11 +368,11 @@ class RockPaperAutomata {
     }
 
     obtainNeighborPickingFunction() {
-        switch (self.neighborPickingMode) {
+        switch (this.neighborPickingMode) {
             case RockPaperAutomata.NEIGHBOR_PICKING_MODE_RANDOM:
                 return RockPaperAutomata.neighborPickRandom;
             case RockPaperAutomata.NEIGHBOR_PICKING_MODE_FIXED:
-                return this.neighborPickFixed;
+                return this.neighborPickFixed.bind(this);
             case RockPaperAutomata.NEIGHBOR_PICKING_MODE_PRE_RANDOM:
                 return RockPaperAutomata.neighborPickPreRandom;
             default:
