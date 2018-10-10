@@ -354,37 +354,50 @@ class RockPaperAutomata {
         this.timing.measure("do-work", () => {
             this.uiCanvas.doWork(/** @this {Canvas} */ function (originalBuffer, workingBuffer) {
                 const algorithm = self.algorithm === "waves" ? self.wavesAlgorithm : self.randomAlgorithm;
+                const pickNeighbor = self.obtainNeighborPickingFunction();
 
                 // iterate over all pixels except for the ones in the border, just to simplify neighbor comparisons
                 for (const y of range(1, this.height - 1)) {
                     for (const x of range(1, this.width - 1)) {
-
-                        let dx, dy;
-                        switch (self.neighborPickingMode) {
-                            case RockPaperAutomata.NEIGHBOR_PICKING_MODE_RANDOM:
-                                // pick a random neighbor - may pick the pixel itself, no big deal
-                                dx = Math.trunc(Math.random() * 3) - 1;
-                                dy = Math.trunc(Math.random() * 3) - 1;
-                                break;
-                            case RockPaperAutomata.NEIGHBOR_PICKING_MODE_FIXED:
-                                [dx, dy] = self.fixedNeighborPicks[self.fixedNeighborPicksIndex];
-                                self.fixedNeighborPicksIndex =
-                                    (self.fixedNeighborPicksIndex + 1) & self.fixedNeighborMask;
-                                break;
-                            case RockPaperAutomata.NEIGHBOR_PICKING_MODE_PRE_RANDOM:
-                                [dx, dy] = self.randomNeighborPicks[self.randomNeighborPicksIndex];
-                                self.randomNeighborPicksIndex =
-                                    (self.randomNeighborPicksIndex + 1) & self.randomNeighborMask;
-                                break;
-                            default:
-                                throw new Error("Unknown neighbor picking mode!");
-                        }
-
+                        const [dx, dy] = pickNeighbor();
                         algorithm(x, y, x + dx, y + dy, this, originalBuffer, workingBuffer);
                     }
                 }
             });
         });
+    }
+
+    obtainNeighborPickingFunction() {
+        switch (self.neighborPickingMode) {
+            case RockPaperAutomata.NEIGHBOR_PICKING_MODE_RANDOM:
+                return RockPaperAutomata.neighborPickRandom;
+            case RockPaperAutomata.NEIGHBOR_PICKING_MODE_FIXED:
+                return this.neighborPickFixed;
+            case RockPaperAutomata.NEIGHBOR_PICKING_MODE_PRE_RANDOM:
+                return RockPaperAutomata.neighborPickPreRandom;
+            default:
+                throw new Error("Unknown neighbor picking mode!");
+        }
+    }
+
+    static neighborPickRandom() {
+        // pick a random neighbor - may pick the pixel itself, no big deal
+        const dx = Math.trunc(Math.random() * 3) - 1;
+        const dy = Math.trunc(Math.random() * 3) - 1;
+        return [dx, dy];
+    }
+
+    neighborPickFixed() {
+        const coord = this.fixedNeighborPicks[this.fixedNeighborPicksIndex];
+        this.fixedNeighborPicksIndex = (this.fixedNeighborPicksIndex + 1) & this.fixedNeighborMask;
+        return coord;
+    }
+
+    static neighborPickPreRandom() {
+        const coord = self.randomNeighborPicks[self.randomNeighborPicksIndex];
+        self.randomNeighborPicksIndex =
+            (self.randomNeighborPicksIndex + 1) & self.randomNeighborMask;
+        return coord;
     }
 
     randomAlgorithm(x, y, nx, ny, canvas, originalBuffer, workingBuffer) {
