@@ -357,8 +357,8 @@ class RockPaperAutomata {
                 const pickNeighbor = self.obtainNeighborPickingFunction();
 
                 // iterate over all pixels except for the ones in the border, just to simplify neighbor comparisons
-                for (const y of range(1, this.height - 1)) {
-                    for (const x of range(1, this.width - 1)) {
+                for (let y = 1; y < this.height - 1; y++) {
+                    for (let x = 1; x < this.width - 1; x++) {
                         const [dx, dy] = pickNeighbor();
                         algorithm(x, y, x + dx, y + dy, this, originalBuffer, workingBuffer);
                     }
