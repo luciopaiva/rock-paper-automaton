@@ -30,18 +30,18 @@ class Rock {
         this.numCells = this.width * this.height;
         console.info(`width=${this.width}, height=${this.height}, numCells=${this.numCells}`);
 
+        this.cells = Array.from(Array(this.numCells), () => new Cell());
+
         this.canvas = document.getElementById("canvas");
         this.canvas.style.width = `${screen.width}px`;
         this.canvas.style.height = `${screen.height}px`;
         this.canvas.setAttribute("width", this.width.toString());
         this.canvas.setAttribute("height", this.height.toString());
         this.ctx = this.canvas.getContext("2d");
-        this.imageData = this.ctx.getImageData(0, 0, this.width, this.height);
+        this.reloadBuffer();
 
-        this.cells = Array.from(Array(this.numCells), () => new Cell());
-        this.buffer = new Uint32Array(this.imageData.data.buffer);
-
-        this.update();
+        this.paintSectors();
+        // this.update();
 
         this.fpsElem = document.getElementById("fps");
         this.fpsCount = 0;
@@ -49,6 +49,11 @@ class Rock {
         this.elapsedSum = 0;
         this.elapsedCount = 0;
         setInterval(this.doMetrics.bind(this), 1000);
+    }
+
+    reloadBuffer() {
+        this.imageData = this.ctx.getImageData(0, 0, this.width, this.height);
+        this.buffer = new Uint32Array(this.imageData.data.buffer);
     }
 
     update() {
@@ -67,6 +72,54 @@ class Rock {
         this.elapsedSum += performance.now() - start;
         this.elapsedCount++;
         requestAnimationFrame(this.update.bind(this));
+    }
+
+    paintSectors() {
+        const x = this.width / 2;
+        const y = this.height / 2;
+        const radius = this.width;
+
+        this.ctx.beginPath();
+        this.ctx.moveTo(x, y);
+        this.ctx.arc(x, y, radius, 0, 2 * Math.PI / 3, false);
+        this.ctx.lineTo(x, y);
+        this.ctx.fillStyle = "green";
+        this.ctx.fill();
+
+        this.ctx.beginPath();
+        this.ctx.moveTo(x, y);
+        this.ctx.arc(x, y, radius, 2 * Math.PI / 3, 4 * Math.PI / 3, false);
+        this.ctx.lineTo(x, y);
+        this.ctx.fillStyle = "blue";
+        this.ctx.fill();
+
+        this.ctx.beginPath();
+        this.ctx.moveTo(x, y);
+        this.ctx.arc(x, y, radius, 4 * Math.PI / 3, 0, false);
+        this.ctx.lineTo(x, y);
+        this.ctx.fillStyle = "red";
+        this.ctx.fill();
+
+        // update buffer with what was just drawn
+        this.reloadBuffer();
+
+        // turn off cells at the borders so they don't run the algorithm
+        this.clearBorders();
+        // this.resetLevelsAndSaturateChannels();
+    }
+
+    // do not let the pixels in the border be painted
+    clearBorders() {
+        const black = rgb(0, 0, 0);
+        for (let x = 0; x < this.width; x++) {
+            this.buffer[x] = black;  // top border
+            this.buffer[(this.height - 1) * this.width + x] = black;  // bottom border
+        }
+        for (let y = 0; y < this.height; y++) {
+            this.buffer[y * this.width] = black;  // left border
+            this.buffer[y * this.width + this.width - 1] = black;  // right border
+        }
+        this.ctx.putImageData(this.imageData, 0, 0);
     }
 
     doMetrics() {
