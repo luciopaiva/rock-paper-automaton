@@ -103,6 +103,9 @@ class Rock {
 
     update() {
         const start = performance.now();
+
+        const redrawList = [];
+
         for (let i = 0; i < this.numCells; i++) {
             const me = this.backgroundCells[i];
             this.foregroundCells[i].level = me.level > 0 ? me.level - 1 : 0;
@@ -126,12 +129,13 @@ class Rock {
 
                     this.foregroundCells[i].type = neighbor.type;
                     this.foregroundCells[i].level = Cell.INITIAL_LEVEL;
+                    redrawList.push(i);
                 }
             }
         }
 
-        for (let i = 0; i < this.numCells; i++) {
-            this.buffer[i] = this.foregroundCells[i].type;
+        for (const cellIndex of redrawList) {
+            this.buffer[cellIndex] = this.foregroundCells[cellIndex].type;
         }
 
         this.ctx.putImageData(this.imageData, 0, 0);
