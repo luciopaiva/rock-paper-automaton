@@ -21,6 +21,10 @@
             font-family: monospace;
             text-shadow: black 1px 1px 4px;
         }
+        a, a:hover, a:active, a:visited {
+            text-decoration: none;
+            color: #c0e3ff;
+        }
         #canvas {
             position: absolute;
             left: 50%;
@@ -30,12 +34,29 @@
         #fps {
             position: absolute;
             right: 20px;
-            bottom: 40px;
+            top: 10px;
         }
         #elapsed {
             position: absolute;
             right: 20px;
+            top: 30px;
+        }
+        #author {
+            position: absolute;
+            right: 20px;
             bottom: 20px;
+        }
+        #title {
+            position: absolute;
+            left: 20px;
+            top: 10px;
+            font-size: 2em;
+        }
+        #subtitle {
+            position: absolute;
+            left: 20px;
+            top: 60px;
+            font-size: 0.8em;
         }
         /* see http://phrogz.net/tmp/canvas_image_zoom.html
            (via https://developer.mozilla.org/en-US/docs/Web/CSS/image-rendering)
@@ -56,8 +77,15 @@
 <body>
 
 <canvas id="canvas" class="pixelated"></canvas>
+<span id="title">Rock Paper Automata</span>
+<span id="subtitle">
+    Cellular automata playing rock-paper-scissors
+</span>
 <span id="fps"></span>
 <span id="elapsed"></span>
+<span id="author">
+    by <a href="https://luciopaiva.com">Lucio Paiva</a>, 2018
+</span>
 <script src="rock.js" nomodule></script>
 
 </body>
