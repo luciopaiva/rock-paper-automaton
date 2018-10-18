@@ -25,7 +25,15 @@ const rgbDist = ([r1, g1, b1], [r2, g2, b2]) => Math.abs(r2 - r1) + Math.abs(g2 
 
 class Cell {
 
+    constructor () {
+        this.level = Cell.INITIAL_LEVEL;
+        this.type = Cell.TYPE_NEUTRAL;
+    }
 }
+
+Cell.INITIAL_LEVEL = 15;
+Cell.EDIBLE_LEVEL = 1;
+Cell.TYPE_NEUTRAL = rgbToVal(0, 0, 0);
 
 class Rock {
 
@@ -38,7 +46,15 @@ class Rock {
 
         this.loadColors();
 
-        this.cells = Array.from(Array(this.numCells), () => new Cell());
+        this.foregroundCells = Array.from(Array(this.numCells), () => new Cell());
+        this.backgroundCells = Array.from(Array(this.numCells), () => new Cell());
+
+        this.neighborDeltas = [
+            -this.width,  // top
+            1,            // right
+            this.width,   // bottom
+            -1            // left
+        ];
 
         this.canvas = document.getElementById("canvas");
         this.canvas.style.width = `${screen.width}px`;
@@ -49,7 +65,12 @@ class Rock {
         this.reloadBuffer();
 
         this.paintSectors();
-        // this.update();
+
+        // turn off cells at the borders so they don't run the algorithm
+        this.clearBorders();
+        this.initializeBackgroundCells();
+
+        this.update();
 
         this.fpsElem = document.getElementById("fps");
         this.fpsCount = 0;
@@ -60,7 +81,7 @@ class Rock {
     }
 
     loadColors() {
-        const cssColorToRGB = (i) => {
+        const cssColorToVal = (i) => {
             const val = parseInt(cssVar(`color-${i}`).match(/[a-fA-F0-9]{6}/)[0], 16);
             const r = val >>> 16 & 0xff;
             const g = val >>> 8 & 0xff;
@@ -69,9 +90,9 @@ class Rock {
         };
         this.colorEmpty = rgbToVal(0, 0, 0);
         this.colorIndexes = [
-            cssColorToRGB(1),
-            cssColorToRGB(2),
-            cssColorToRGB(3),
+            cssColorToVal(1),
+            cssColorToVal(2),
+            cssColorToVal(3),
         ];
     }
 
@@ -83,19 +104,51 @@ class Rock {
     update() {
         const start = performance.now();
         for (let i = 0; i < this.numCells; i++) {
-            const level = (128 * Math.random()) & 0xff;
-            const r = level;
-            const g = level;
-            const b = level;
-            this.buffer[i] = rgbToVal(r, g, b);
+            const me = this.backgroundCells[i];
+            this.foregroundCells[i].level = me.level > 0 ? me.level - 1 : 0;
+            this.foregroundCells[i].type = me.type;
+
+            if (me.type === Cell.TYPE_NEUTRAL) {
+                continue;
+            }
+
+            if (me.level > Cell.EDIBLE_LEVEL) {  // cell can't be eaten
+                continue;
+            }
+
+            const neighborIndex = this.pickRandomNeighborIndex(i);
+            const neighbor = this.backgroundCells[neighborIndex];
+
+            if (neighbor.level >= me.level) {
+                if (neighbor.type === this.colorIndexes[2] && me.type === this.colorIndexes[1] ||
+                    neighbor.type === this.colorIndexes[1] && me.type === this.colorIndexes[0] ||
+                    neighbor.type === this.colorIndexes[0] && me.type === this.colorIndexes[2]) {
+
+                    this.foregroundCells[i].type = neighbor.type;
+                    this.foregroundCells[i].level = Cell.INITIAL_LEVEL;
+                }
+            }
+        }
+
+        for (let i = 0; i < this.numCells; i++) {
+            this.buffer[i] = this.foregroundCells[i].type;
         }
 
         this.ctx.putImageData(this.imageData, 0, 0);
+
+        // swap
+        const cells = this.foregroundCells;
+        this.foregroundCells = this.backgroundCells;
+        this.backgroundCells = cells;
 
         this.fpsCount++;
         this.elapsedSum += performance.now() - start;
         this.elapsedCount++;
         requestAnimationFrame(this.update.bind(this));
+    }
+
+    pickRandomNeighborIndex(i) {
+        return i + this.neighborDeltas[Math.floor(Math.random() * this.neighborDeltas.length)];
     }
 
     paintSectors() {
@@ -127,16 +180,21 @@ class Rock {
         // update buffer with what was just drawn
         this.reloadBuffer();
 
-        // turn off cells at the borders so they don't run the algorithm
-        this.resetLevelsAndSaturateChannels();
-        this.clearBorders();
+        this.saturateChannels();
+    }
+
+    initializeBackgroundCells() {
+        for (let i = 0; i < this.numCells; i++) {
+            this.backgroundCells[i].type = this.buffer[i];
+            this.backgroundCells[i].level = Cell.EDIBLE_LEVEL;  // so it starts running right away
+        }
     }
 
     /**
      * After paintSector() runs, anti-aliased pixels will result. This method traverses the whole canvas, snapping each
      * pixel color to the nearest known color.
      */
-    resetLevelsAndSaturateChannels() {
+    saturateChannels() {
         for (let i = 0; i < this.numCells; i++) {
             const rgb = valToRGB(this.buffer[i]);
 
