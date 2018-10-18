@@ -38,7 +38,7 @@ Cell.TYPE_NEUTRAL = rgbToVal(0, 0, 0);
 class Rock {
 
     constructor () {
-        this.scale = 4;
+        this.scale = 2;
         this.width = Math.ceil(screen.width / this.scale);
         this.height = Math.ceil(screen.height / this.scale);
         this.numCells = this.width * this.height;
