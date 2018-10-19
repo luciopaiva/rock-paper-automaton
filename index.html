@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, shrink-to-fit=yes">
     <title>Rock Paper Automata</title>
 
     <style>
@@ -69,6 +70,12 @@
             image-rendering: crisp-edges;               /* CSS4 Proposed  */
             image-rendering: pixelated;                 /* CSS4 Proposed  */
             -ms-interpolation-mode: nearest-neighbor;   /* IE8+           */
+        }
+
+        @media all and (max-width: 600px) {
+            #subtitle {
+                display: none;
+            }
         }
     </style>
 
