@@ -1,7 +1,6 @@
 
 const cssVar = (varName) => getComputedStyle(document.documentElement)
     .getPropertyValue(varName.startsWith("--") ? "" : "--" + varName);
-const cssVarAsNumber = (varName) => parseInt(cssVar(varName), 10);
 
 /**
  * https://stackoverflow.com/a/52827031/778272
@@ -88,7 +87,6 @@ class Rock {
             const b = val & 0xff;
             return rgbToVal(r, g, b);
         };
-        this.colorEmpty = rgbToVal(0, 0, 0);
         this.colorIndexes = [
             cssColorToVal(1),
             cssColorToVal(2),
