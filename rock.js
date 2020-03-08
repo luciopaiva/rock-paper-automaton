@@ -34,6 +34,12 @@ Cell.INITIAL_LEVEL = 15;
 Cell.EDIBLE_LEVEL = 1;
 Cell.TYPE_NEUTRAL = rgbToVal(0, 0, 0);
 
+/**
+ * Lucio Paiva 2018
+ * luciopaiva.com
+ *
+ * Use and modify the code here as you please, but it'd be awesome if you keep the reference to my website somewhere :-)
+ */
 class Rock {
 
     constructor () {

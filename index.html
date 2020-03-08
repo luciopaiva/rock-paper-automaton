@@ -72,6 +72,12 @@
             -ms-interpolation-mode: nearest-neighbor;   /* IE8+           */
         }
 
+        .circle-portrait {
+            width: 48px;
+            border-radius: 24px;
+            box-shadow: 0 3px 3px black;
+        }
+
         @media all and (max-width: 600px) {
             #subtitle {
                 display: none;
@@ -95,12 +101,13 @@
 <canvas id="canvas" class="pixelated"></canvas>
 <span id="title">Rock Paper Automaton</span>
 <span id="subtitle">
-    A cellular automaton playing rock-paper-scissors
+    A cellular automaton that plays rock paper scissors
 </span>
 <span id="fps"></span>
 <span id="elapsed"></span>
 <span id="author">
-    by <a href="https://luciopaiva.com">Lucio Paiva</a>, 2018-2019
+    <a href="https://luciopaiva.com"><img class="circle-portrait" src="https://luciopaiva.com/img/avatar.jpg" alt="avatar" title="Lucio Paiva, 2018"></a>
+    <a href="https://github.com/luciopaiva/rock-paper-automaton"><img src="https://luciopaiva.com/img/github-logo.svg" alt="github" class="circle-portrait" title="Source code"></a>
 </span>
 <script src="rock.js" nomodule></script>
 
