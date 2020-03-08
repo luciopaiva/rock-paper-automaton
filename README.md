@@ -5,7 +5,7 @@ Cellular automaton playing rock paper scissors on HTML5 canvas.
 
 ![screenshot](screenshot.png)
 
-In this simulation, every pixel acts as an automaton. In the likes of [John Conway](https://en.wikipedia.org/wiki/John_Horton_Conway)'s [Game of Life](https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life), at each simulation step, every cell decides its next color based on its neighbors' colors. Unlike Conway's game, though, there are three states (or colors) instead of just "dead" or "alive". Here's where the rock paper scissors analogy comes into play. Whenever a cell of a certain category is confronted with another of a different category, it will either "eat" or be "eaten" by the other. The rules are:
+In this simulation, every pixel is a cell. In the likes of [John Conway](https://en.wikipedia.org/wiki/John_Horton_Conway)'s [Game of Life](https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life), at each simulation step, every cell decides its next color based on its neighbors' colors. Unlike Conway's game, though, there are three states (or colors) instead of just "dead" or "alive". Here's where the rock paper scissors analogy comes into play. Whenever a cell of a certain category is confronted with another of a different category, it will either "eat" or be "eaten" by the other. The rules are:
 
 - C eats B
 - B eats A
