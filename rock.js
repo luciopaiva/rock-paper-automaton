@@ -42,7 +42,7 @@ Cell.TYPE_NEUTRAL = rgbToVal(0, 0, 0);
  */
 class Rock {
 
-    constructor () {
+    constructor (debugMode) {
         this.scale = 2;
         this.width = Math.ceil(screen.width / this.scale);
         this.height = Math.ceil(screen.height / this.scale);
@@ -77,12 +77,15 @@ class Rock {
 
         this.update();
 
-        this.fpsElem = document.getElementById("fps");
-        this.fpsCount = 0;
-        this.elapsedElem = document.getElementById("elapsed");
-        this.elapsedSum = 0;
-        this.elapsedCount = 0;
-        setInterval(this.doMetrics.bind(this), 1000);
+        this.debugMode = !!debugMode;
+        if (this.debugMode) {
+            this.fpsElem = document.getElementById("fps");
+            this.fpsCount = 0;
+            this.elapsedElem = document.getElementById("elapsed");
+            this.elapsedSum = 0;
+            this.elapsedCount = 0;
+            setInterval(this.processMetrics.bind(this), 1000);
+        }
     }
 
     loadColors() {
@@ -149,9 +152,11 @@ class Rock {
         this.foregroundCells = this.backgroundCells;
         this.backgroundCells = cells;
 
-        this.fpsCount++;
-        this.elapsedSum += performance.now() - start;
-        this.elapsedCount++;
+        if (this.debugMode) {
+            this.fpsCount++;
+            this.elapsedSum += performance.now() - start;
+            this.elapsedCount++;
+        }
         requestAnimationFrame(this.update.bind(this));
     }
 
@@ -236,7 +241,7 @@ class Rock {
         this.ctx.putImageData(this.imageData, 0, 0);
     }
 
-    doMetrics() {
+    processMetrics() {
         this.fpsElem.innerText = this.fpsCount.toString() + "Hz";
         this.elapsedElem.innerText = (this.elapsedSum / this.elapsedCount).toFixed(1) + "ms";
         this.fpsCount = this.elapsedSum = this.elapsedCount = 0;
